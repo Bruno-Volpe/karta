@@ -35,3 +35,22 @@ def test_search_location_retorna_id():
 def test_search_location_cidade_invalida():
     with pytest.raises(ValueError):
         search_location("xyzabc123")
+
+
+def test_search_hotels_retorna_search_id():
+    from netactica.client import search_hotels
+    loc = search_location("Cancun")
+    search_id = search_hotels(loc["Id"], "2026-06-01", "2026-06-03", adults=2)
+    assert search_id
+    print(f"\nSearchId: {search_id}")
+
+
+def test_get_results_retorna_hoteis():
+    from netactica.client import search_hotels, get_results
+    loc = search_location("Cancun")
+    search_id = search_hotels(loc["Id"], "2026-06-01", "2026-06-03", adults=2)
+    hotels = get_results(search_id, categories=["4", "5"], limit=3)
+    assert len(hotels) > 0
+    assert hotels[0]["name"]
+    assert hotels[0]["best_rate"]["total"] > 0
+    print(f"\n{len(hotels)} hotéis: {[h['name'] for h in hotels]}")

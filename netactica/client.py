@@ -57,3 +57,103 @@ def search_location(city: str) -> dict:
     loc = locations[0]
     logger.info("Resolved '%s' → %s (id=%s) [fallback]", city, loc["NameFull"], loc["Id"])
     return loc
+
+
+def search_hotels(
+    location_id: int,
+    checkin: str,
+    checkout: str,
+    adults: int = 2,
+    children: int = 0,
+    max_results: int = 50,
+) -> str:
+    """Start an async hotel search and return the SearchId.
+
+    The search is asynchronous — call get_results(search_id) to fetch hotels.
+    """
+    from netactica.auth import get_token
+
+    payload = {
+        "DestinationType": "location",
+        "LocationId": location_id,
+        "CheckIn": checkin,
+        "CheckOut": checkout,
+        "Rooms": [{"Adults": adults, "Children": children}],
+        "SessionToken": get_token(),
+        "IncludeHotelInfo": True,
+        "IncludeRooms": True,
+        "MaxResults": max_results,
+    }
+    r = _post(f"{settings.netactica_base_url}/HotelSearchV3", json=payload)
+    data = r.json()
+    search_id = data["SearchId"]
+    logger.info("Search started: id=%s count=%s", search_id, data.get("ResultsCount"))
+    return search_id
+
+
+def get_results(
+    search_id: str,
+    categories: list[str] | None = None,
+    refundable_only: bool = False,
+    price_from: float | None = None,
+    price_to: float | None = None,
+    order_by: str = "RECOMENDATION",
+    limit: int = 10,
+) -> list[dict]:
+    """Fetch hotel results for a given SearchId with optional filters.
+
+    Returns a simplified list of hotels ready to show to the user.
+    Note: Categories must be strings (["4","5"]), not ints.
+    Note: RefundableType 0=Refundable, 1=NonRefundable (inverted in API).
+    """
+    from netactica.auth import get_token
+
+    payload: dict = {
+        "SearchId": search_id,
+        "SessionToken": get_token(),
+        "IncludeRooms": True,
+        "OrderCriteria": order_by,
+        "ResultCountUpperBound": limit,
+    }
+
+    if categories:
+        payload["Categories"] = [str(c) for c in categories]  # must be strings
+    if refundable_only:
+        payload["RefundableType"] = 0  # 0=Refundable (inverted!)
+    if price_from is not None:
+        payload["PriceFrom"] = price_from
+    if price_to is not None:
+        payload["PriceTo"] = price_to
+
+    r = _post(f"{settings.netactica_base_url}/HotelResultsV2", json=payload)
+    hotels = r.json().get("Results", [])
+
+    return [_format_hotel(h) for h in hotels]
+
+
+def _format_hotel(h: dict) -> dict:
+    """Extract the fields relevant to show the user."""
+    # Pick the cheapest refundable rate, fallback to cheapest overall
+    rates = h.get("RoomRates", [])
+    refundable_rates = [r for r in rates if r.get("RefundableType") == 0]
+    best_rate = min(refundable_rates or rates, key=lambda r: r.get("Price", {}).get("Total", 9999), default=None)
+
+    return {
+        "option_id": h.get("OptionId"),
+        "hotel_id": h.get("HotelId"),
+        "name": h.get("HotelName"),
+        "category": h.get("Category"),  # int: 3, 4, 5
+        "zone": h.get("Zone"),
+        "address": h.get("FullAddress"),
+        "score": h.get("Score"),
+        "price_from": h.get("PriceFrom"),
+        "currency": h.get("CurrencyCode"),
+        "thumbnail": h.get("Thumbnail"),
+        "best_rate": {
+            "rate_id": best_rate.get("RateId"),
+            "total": best_rate["Price"]["Total"],
+            "currency": best_rate["Price"]["CurrencyCode"],
+            "refundable": best_rate.get("RefundableType") == 0,
+            "board": h.get("RoomRates", [{}])[0].get("BoardTypeCode"),
+        } if best_rate else None,
+    }
