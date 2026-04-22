@@ -6,7 +6,7 @@ class Settings(BaseSettings):
 
     # Gemini
     gemini_api_key: str
-    gemini_model: str = "gemini-1.5-flash"
+    gemini_model: str = "gemini-2.5-flash"
 
     # Netactica
     netactica_base_url: str = "https://preprod.netactica.com/netcoreapi"
