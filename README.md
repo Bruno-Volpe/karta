@@ -62,6 +62,11 @@ Current smoke tests:
 | `test_gemini_conectado` | Gemini API key is valid and model responds |
 | `test_auth` | Netactica auth returns a valid token |
 | `test_autocomplete` | Netactica location search returns results |
+| `test_search_location_retorna_id` | City name resolves to correct LocationId |
+| `test_search_location_cidade_invalida` | Invalid city raises ValueError |
+| `test_search_hotels_retorna_search_id` | HotelSearchV3 returns a SearchId |
+| `test_get_results_retorna_hoteis` | HotelResultsV2 returns filtered hotel list |
+| `test_get_hotel_details` | Hotel details returns images and reviews |
 
 ---
 
@@ -79,6 +84,23 @@ In-memory is the right fit here because:
 Redis is used exclusively for user session storage (conversation history and booking context), where persistence and isolation between users actually matter.
 
 `netactica/auth.py` is a standalone module responsible only for token lifecycle. `netactica/client.py` consumes it via `get_headers()`, and passes `force_refresh=True` on any 401 response to transparently renew the token.
+
+---
+
+**Netactica API divergences from documentation**
+
+Several behaviors discovered by testing the actual API differ from what the provided docs describe:
+
+| What the doc said | What the API actually does |
+|---|---|
+| `DestinationType: "multi_city_vicinity"` | Only accepts `"location"` or `"hotel"` |
+| `HotelResult.Category` is a string (`"4"`) | Returns an int (`4`) |
+| `HotelResult.PriceFrom` is a Price object | Returns a plain float |
+| `HotelResult.PropertyTypes` is a list | Returns a string (`"Hotels"`) |
+| `HotelResultsV2.ResultCountUpperBound` is optional | Required and must be >= 1 |
+| Hotel details: use `optionId` param | Param name is `hotelOptionId` |
+| Hotel details endpoint: `static-content.netactica.io` | Must use `scapi-testing.netactica.io` |
+| Hotel `Images` are objects with a `url` field | Images are plain URL strings |
 
 ---
 

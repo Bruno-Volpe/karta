@@ -131,6 +131,53 @@ def get_results(
     return [_format_hotel(h) for h in hotels]
 
 
+def get_hotel_details(search_id: str, option_id: int) -> dict:
+    """Fetch extended hotel info: images, amenities, reviews.
+
+    Uses scapi-testing endpoint (Static Content API).
+    Note: param name is hotelOptionId (not optionId).
+    Images are returned as a list of URL strings.
+    """
+    r = _get(
+        "https://scapi-testing.netactica.io/hotel/details",
+        params={"searchId": search_id, "hotelOptionId": str(option_id), "language": "en"},
+    )
+    data = r.json()
+    info = data.get("Info", {})
+
+    amenities = [
+        desc.get("Description", "")
+        for amenity in info.get("Ammenities", [])
+        for desc in amenity.get("Description", [])
+        if desc.get("Locale") == "en"
+    ] or [
+        desc.get("Description", "")
+        for amenity in info.get("Ammenities", [])
+        for desc in amenity.get("Description", [])
+    ]
+
+    meta_reviews = [
+        {
+            "category": m.get("CategoryName"),
+            "score": m.get("Score"),
+            "text": m.get("ShortText") or m.get("Text"),
+        }
+        for m in info.get("MetaReviews", [])
+    ]
+
+    return {
+        "name": info.get("HotelName"),
+        "description": info.get("ShortDescription"),
+        "address": info.get("FullAddress"),
+        "images": info.get("Images", []),           # list of URL strings
+        "thumbnail": info.get("Thumbnail"),
+        "amenities": amenities[:10],
+        "reviews_count": info.get("ReviewsCount"),
+        "meta_reviews": meta_reviews[:5],
+        "cancellation_policies": data.get("Result", {}).get("CancellationPolicies", []),
+    }
+
+
 def _format_hotel(h: dict) -> dict:
     """Extract the fields relevant to show the user."""
     # Pick the cheapest refundable rate, fallback to cheapest overall

@@ -4,7 +4,7 @@ import httpx
 from config import settings
 from netactica.client import search_location
 
-
+#Just to get it easier the debugging, development
 def test_auth():
     r = httpx.post(f"{settings.netactica_base_url}/Session", json={
         "UserName": settings.netactica_username,
@@ -54,3 +54,14 @@ def test_get_results_retorna_hoteis():
     assert hotels[0]["name"]
     assert hotels[0]["best_rate"]["total"] > 0
     print(f"\n{len(hotels)} hotéis: {[h['name'] for h in hotels]}")
+
+
+def test_get_hotel_details():
+    from netactica.client import search_hotels, get_results, get_hotel_details
+    loc = search_location("Cancun")
+    sid = search_hotels(loc["Id"], "2026-06-01", "2026-06-03", adults=2)
+    hotels = get_results(sid, limit=1)
+    details = get_hotel_details(sid, hotels[0]["option_id"])
+    assert details["name"]
+    assert len(details["images"]) > 0
+    print(f"\n{details['name']}: {len(details['images'])} imagens, {details['reviews_count']} reviews")
