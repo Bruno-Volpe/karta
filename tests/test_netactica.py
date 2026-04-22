@@ -65,3 +65,36 @@ def test_get_hotel_details():
     assert details["name"]
     assert len(details["images"]) > 0
     print(f"\n{details['name']}: {len(details['images'])} imagens, {details['reviews_count']} reviews")
+
+
+def test_fluxo_completo():
+    from netactica.client import search_hotels, get_results, validate, book, confirm, cancel
+    loc = search_location("Playa del Carmen")
+    sid = search_hotels(loc["Id"], "2026-06-01", "2026-06-03", adults=2)
+    hotels = get_results(sid, categories=["4", "5"], limit=1)
+    h = hotels[0]
+    rate = h["best_rate"]
+
+    v = validate(sid, h["option_id"], rate["rate_id"])
+    assert v["validate_option_id"]
+    assert v["config_doc_id"]
+    assert v["total"] > 0
+
+    traveler = {
+        "RoomNumber": 1, "PaxType": "Adult", "Gender": "Male",
+        "FirstName": "Juan", "LastName": "Perez",
+        "Phone": "5215551234567", "Email": "juan@test.com",
+        "DocumentNumber": "MX123456",
+        "ConfigurationDocumentId": v["config_doc_id"],
+        "Nationality": "MX", "DOB": "1990-01-15",
+    }
+    b = book(v["validate_option_id"], [traveler])
+    assert b["reservation_id"]
+    print(f"\nReservationId: {b['reservation_id']}")
+
+    c = confirm(b["reservation_id"])
+    assert c["status"] == "Confirm"
+
+    cx = cancel(b["reservation_id"])
+    assert cx["status"] == "Cancelled"
+    print(f"Cancelado: #{cx['reservation_id']}")

@@ -253,9 +253,9 @@ class CancellationPolicy(BaseModel):
 
 
 class ValidDocument(BaseModel):
-    Id: str
-    DocumentType: Optional[str] = None
-    Description: Optional[str] = None
+    Id: int  # API returns int, not str
+    Name: Optional[str] = None
+    DocumentId: Optional[int] = None
 
 
 class ValidateResponse(BaseModel):
@@ -270,8 +270,8 @@ class ValidateResponse(BaseModel):
     RequiredAdultPaxBirthDate: Optional[bool] = None
 
     @property
-    def config_doc_id(self) -> Optional[str]:
-        """ConfigurationDocumentId must come from ValidDocuments[0].Id."""
+    def config_doc_id(self) -> Optional[int]:
+        """ConfigurationDocumentId must come from ValidDocuments[0].Id (int)."""
         if self.ValidDocuments:
             return self.ValidDocuments[0].Id
         return None
@@ -294,7 +294,7 @@ class Traveler(BaseModel):
     Phone: str
     Email: str
     DocumentNumber: str
-    ConfigurationDocumentId: str   # from ValidateResponse.config_doc_id
+    ConfigurationDocumentId: int   # from ValidateResponse.ValidDocuments[0].Id (int!)
     Nationality: str               # ISO 2-letter country code
     DOB: str                       # "YYYY-MM-DD"
     LoyaltyAccountId: Optional[str] = None

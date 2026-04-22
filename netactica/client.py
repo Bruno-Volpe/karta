@@ -178,6 +178,120 @@ def get_hotel_details(search_id: str, option_id: int) -> dict:
     }
 
 
+def validate(search_id: str, option_id: int, rate_id: str) -> dict:
+    """Validate price, availability and cancellation policies before booking.
+
+    Returns a dict with: validate_option_id, config_doc_id, amount, policies, status.
+    StatusChanged values: Available, NotAvailable, PriceDifference, CancellationPoliciesChanged.
+    CancellationPoliciesChanged still allows booking — just inform the user.
+    """
+    from netactica.auth import get_token
+    token = get_token()
+
+    r = _post(f"{settings.netactica_base_url}/hotelvalidation", json={
+        "SearchId": search_id,
+        "SessionToken": token,
+        "OptionId": option_id,
+        "RateId": rate_id,
+        "IncludeAlternativeCurrencies": False,
+    })
+    data = r.json()
+
+    status = data.get("StatusChanged")
+    if status == "NotAvailable":
+        raise ValueError("Hotel option is no longer available.")
+
+    policies = [
+        {
+            "date_from": p.get("DateFromGmtAgency") or p.get("DateFrom"),
+            "date_to": p.get("DateToGmtAgency") or p.get("DateTo"),
+            "amount": p.get("Amount", {}).get("Fare"),
+            "currency": p.get("Amount", {}).get("CurrencyCode"),
+        }
+        for p in data.get("CancellationPolicies", [])
+    ]
+
+    amount = data.get("Amount", {})
+    return {
+        "validate_option_id": data.get("ValidateOptionId"),
+        "config_doc_id": data.get("ValidDocuments", [{}])[0].get("Id"),  # int!
+        "total": amount.get("Total"),
+        "currency": amount.get("CurrencyCode"),
+        "status": status,
+        "cancellation_policies": policies,
+        "allow_only_first_pax": data.get("AllowOnlyFirstPax", False),
+    }
+
+
+def book(validate_option_id: str, travelers: list[dict]) -> dict:
+    """Create a hotel reservation.
+
+    travelers: list of dicts matching the Traveler model fields.
+    Returns: reservation_id, travel_itinerary_id, hotel info.
+    """
+    from netactica.auth import get_token
+    token = get_token()
+
+    r = _post(f"{settings.netactica_base_url}/HotelBook", json={
+        "SessionToken": token,
+        "ValidateOptionId": validate_option_id,
+        "Travelers": travelers,
+    })
+    data = r.json()
+    return {
+        "reservation_id": data.get("ReservationId"),
+        "travel_itinerary_id": data.get("TravelItineraryId"),
+        "hotel_name": data.get("Reservation", {}).get("Hotel", {}).get("HotelName"),
+    }
+
+
+def confirm(reservation_id: int) -> dict:
+    """Confirm a booked reservation with the supplier.
+
+    Returns: status, supplier_reference_code.
+    """
+    from netactica.auth import get_token
+    token = get_token()
+
+    r = _post(f"{settings.netactica_base_url}/Hotel/Confirm", json={
+        "HotelReservationId": reservation_id,
+        "SessionToken": token,
+    })
+    reservation = r.json().get("Reservation", {})
+    status = reservation.get("Status")
+    if status != "Confirm":
+        raise ValueError(f"Confirmation failed with status: {status}")
+
+    return {
+        "reservation_id": reservation_id,
+        "status": status,
+        "supplier_reference": reservation.get("SupplierReferenceCode"),
+    }
+
+
+def cancel(reservation_id: int) -> dict:
+    """Cancel a reservation.
+
+    Returns: reservation_id, status.
+    """
+    from netactica.auth import get_token
+    token = get_token()
+
+    r = _post(f"{settings.netactica_base_url}/Hotel/Cancel/", json={
+        "HotelReservationId": reservation_id,
+        "SessionToken": token,
+    })
+    reservation = r.json().get("Reservation", {})
+    status = reservation.get("Status")
+    if status != "Cancelled":
+        raise ValueError(f"Cancellation failed with status: {status}")
+
+    return {
+        "reservation_id": reservation_id,
+        "status": status,
+    }
+
+
 def _format_hotel(h: dict) -> dict:
     """Extract the fields relevant to show the user."""
     # Pick the cheapest refundable rate, fallback to cheapest overall
