@@ -88,6 +88,25 @@ Redis is used exclusively for user session storage (conversation history and boo
 
 ---
 
+**Session storage: Redis**
+
+Each user conversation needs to persist two things across HTTP requests: the message history (so the AI remembers what was said) and the booking context (`search_id`, `option_id`, `reservation_id`, etc. so the AI knows where the flow is).
+
+We considered several approaches:
+
+| Option | How it works | Why we didn't choose it |
+|---|---|---|
+| **Client-side (frontend)** | Frontend sends full history on every request | No frontend in this challenge; also leaks booking context to the client |
+| **JWT / signed token** | Encode session state in the request token | State grows with every message — tokens become large and can't be invalidated |
+| **Sticky sessions** | Route each user to the same server instance | Breaks with multiple workers; not portable |
+| **Database (Postgres/Mongo)** | Persist sessions in a DB | Too heavy for ephemeral conversation state; adds schema migrations |
+| **In-memory dict** | Python dict in the process | Lost on restart; breaks with multiple workers |
+| **Redis** ✅ | Key-value store with TTL | Fast, simple, survives restarts, works with multiple workers, native TTL support |
+
+Redis fits perfectly because sessions are short-lived (24h TTL), the data is unstructured (JSON blob), and read/write performance matters more than query flexibility. The code falls back to in-memory automatically if Redis is unavailable, which keeps local development simple.
+
+---
+
 **Netactica API divergences from documentation**
 
 Several behaviors discovered by testing the actual API differ from what the provided docs describe:
