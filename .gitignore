@@ -10,3 +10,5 @@ build/
 .pytest_cache/
 .mypy_cache/
 zdesafio/
+*.md.bak
+glittery-*.md

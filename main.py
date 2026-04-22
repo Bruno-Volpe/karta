@@ -5,6 +5,7 @@ from fastapi import FastAPI, HTTPException
 from models.chat import ChatRequest, ChatResponse
 from sessions import get_session, save_session, append_message
 from agent import run
+from tools import set_session
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -19,6 +20,7 @@ def health():
 
 @app.post("/chat", response_model=ChatResponse)
 async def chat(request: ChatRequest):
+    set_session(request.session_id)  # allows tools to update session context
     session = get_session(request.session_id)
 
     # Append user message to history
@@ -43,3 +45,9 @@ async def chat(request: ChatRequest):
 def get_history(session_id: str):
     session = get_session(session_id)
     return {"session_id": session_id, "messages": session["messages"], "context": session["context"]}
+
+
+@app.delete("/sessions/{session_id}")
+def clear_session(session_id: str):
+    save_session(session_id, {"messages": [], "context": {}})
+    return {"session_id": session_id, "status": "cleared"}

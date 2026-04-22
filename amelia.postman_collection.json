@@ -1,0 +1,93 @@
+{
+  "info": {
+    "name": "Amelia — Hotel Booking Agent",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "base_url", "value": "http://localhost:8000" },
+    { "key": "session_id", "value": "session-demo-001" }
+  ],
+  "item": [
+    {
+      "name": "0. Clear session (run before starting a new flow)",
+      "request": {
+        "method": "DELETE",
+        "url": "{{base_url}}/sessions/{{session_id}}"
+      }
+    },
+    {
+      "name": "Health Check",
+      "request": {
+        "method": "GET",
+        "url": "{{base_url}}/health"
+      }
+    },
+    {
+      "name": "1. Search hotels",
+      "request": {
+        "method": "POST",
+        "url": "{{base_url}}/chat",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"session_id\": \"{{session_id}}\",\n  \"message\": \"Search for 4-star hotels in Playa del Carmen, check-in June 1 2026, checkout June 3 2026, 2 adults\"\n}"
+        }
+      }
+    },
+    {
+      "name": "2. Select and validate option",
+      "request": {
+        "method": "POST",
+        "url": "{{base_url}}/chat",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"session_id\": \"{{session_id}}\",\n  \"message\": \"I'd like the first option. Can you validate the price and show me the cancellation policy?\"\n}"
+        }
+      }
+    },
+    {
+      "name": "3. Book with passenger info",
+      "request": {
+        "method": "POST",
+        "url": "{{base_url}}/chat",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"session_id\": \"{{session_id}}\",\n  \"message\": \"Please book it. Passenger: Juan Perez, Male, passport MX123456, Mexican, born 1990-01-15, phone 5215551234567, email juan@test.com\"\n}"
+        }
+      }
+    },
+    {
+      "name": "4. Cancel reservation",
+      "request": {
+        "method": "POST",
+        "url": "{{base_url}}/chat",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"session_id\": \"{{session_id}}\",\n  \"message\": \"Please cancel the reservation.\"\n}"
+        }
+      }
+    },
+    {
+      "name": "View session history",
+      "request": {
+        "method": "GET",
+        "url": "{{base_url}}/sessions/{{session_id}}/history"
+      }
+    },
+    {
+      "name": "Parallel session (different user)",
+      "request": {
+        "method": "POST",
+        "url": "{{base_url}}/chat",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"session_id\": \"session-demo-002\",\n  \"message\": \"Search hotels in Cancun for 2 adults, June 1-3 2026\"\n}"
+        }
+      }
+    }
+  ]
+}

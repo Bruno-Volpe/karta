@@ -1,12 +1,21 @@
 """Gemini function calling tools — bridges AI decisions to Netactica API calls."""
 import json
 import logging
+from typing import Optional
 
 import google.generativeai as genai
 
 import netactica.client as client
 
 logger = logging.getLogger(__name__)
+
+# Session ID injected by main.py before each request so tools can update context
+_current_session_id: Optional[str] = None
+
+
+def set_session(session_id: str) -> None:
+    global _current_session_id
+    _current_session_id = session_id
 
 # ---------------------------------------------------------------------------
 # Tool definitions (what Gemini sees)
@@ -140,13 +149,18 @@ def _dispatch(name: str, args: dict):
         return {"location_id": loc["Id"], "name": loc["NameFull"]}
 
     if name == "search_hotels":
-        return {"search_id": client.search_hotels(
+        search_id = client.search_hotels(
             location_id=int(args["location_id"]),  # Gemini returns floats for integers
             checkin=args["checkin"],
             checkout=args["checkout"],
             adults=int(args.get("adults", 2)),
             children=int(args.get("children", 0)),
-        )}
+        )
+        # Persist search_id in session context so it's always the current one
+        if _current_session_id:
+            from sessions import update_context
+            update_context(_current_session_id, search_id=search_id)
+        return {"search_id": search_id}
 
     if name == "get_results":
         categories = None
