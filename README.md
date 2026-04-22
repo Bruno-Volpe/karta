@@ -23,7 +23,7 @@ source .venv/bin/activate
 pip install -r requirements.txt
 ```
 
-Copy the environment file and fill in your keys:
+Copy the environment file and fill in your keys — all variables are documented in `.env.example`:
 
 ```bash
 cp .env.example .env
@@ -62,3 +62,9 @@ Current smoke tests:
 | `test_gemini_conectado` | Gemini API key is valid and model responds |
 | `test_auth` | Netactica auth returns a valid token |
 | `test_autocomplete` | Netactica location search returns results |
+
+---
+
+## Development notes
+
+This project was developed as a single-developer challenge without feature branches or pull requests — all commits go directly to `main`. In a team setting, each feature would live in its own branch with a PR and review before merging.
