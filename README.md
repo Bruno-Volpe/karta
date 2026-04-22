@@ -36,6 +36,9 @@ cp .env.example .env
 ## Running locally
 
 ```bash
+# Start Redis (required for session persistence)
+docker compose up redis -d
+
 uvicorn main:app --reload
 ```
 
@@ -45,6 +48,34 @@ Health check:
 curl http://localhost:8000/health
 # {"status":"ok"}
 ```
+
+### Running with Docker (API + Redis together)
+
+```bash
+docker compose up --build
+```
+
+---
+
+## API
+
+### `POST /chat`
+
+```bash
+curl -X POST http://localhost:8000/chat \
+  -H "Content-Type: application/json" \
+  -d '{"session_id": "session-001", "message": "Search 4-star hotels in Cancun, June 1-3 2026, 2 adults"}'
+```
+
+### `GET /sessions/{session_id}/history`
+
+```bash
+curl http://localhost:8000/sessions/session-001/history
+```
+
+### Postman collection
+
+Import `amelia.postman_collection.json` to run a full conversation flow: search → validate → book → cancel.
 
 ---
 
@@ -68,6 +99,8 @@ Current smoke tests:
 | `test_get_results_retorna_hoteis` | HotelResultsV2 returns filtered hotel list |
 | `test_get_hotel_details` | Hotel details returns images and reviews |
 | `test_fluxo_completo` | Full flow: search → validate → book → confirm → cancel |
+| `test_redis_conectado` | Redis is reachable and responding |
+| `test_session_persiste_no_redis` | Session data persists and is isolated between users |
 
 ---
 
