@@ -67,6 +67,7 @@ Current smoke tests:
 | `test_search_hotels_retorna_search_id` | HotelSearchV3 returns a SearchId |
 | `test_get_results_retorna_hoteis` | HotelResultsV2 returns filtered hotel list |
 | `test_get_hotel_details` | Hotel details returns images and reviews |
+| `test_fluxo_completo` | Full flow: search → validate → book → confirm → cancel |
 
 ---
 
@@ -101,6 +102,7 @@ Several behaviors discovered by testing the actual API differ from what the prov
 | Hotel details: use `optionId` param | Param name is `hotelOptionId` |
 | Hotel details endpoint: `static-content.netactica.io` | Must use `scapi-testing.netactica.io` |
 | Hotel `Images` are objects with a `url` field | Images are plain URL strings |
+| Gemini returns `INTEGER` schema values as floats | All integer tool args must be cast with `int()` in the dispatcher |
 
 ---
 
