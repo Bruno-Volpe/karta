@@ -46,13 +46,27 @@ def _to_gemini_history(messages: list[dict]) -> list[dict]:
     return result
 
 
+def _context_message(context: dict) -> str | None:
+    """Build a context hint for the agent based on current session state."""
+    if not context:
+        return None
+    parts = []
+    if context.get("search_id"):
+        parts.append(f"Current search_id: {context['search_id']}")
+    if context.get("reservation_id"):
+        parts.append(f"Current reservation_id: {context['reservation_id']}")
+    if not parts:
+        return None
+    return "[Session context: " + " | ".join(parts) + ". Use these IDs — do not start a new search unless the user asks.]"
+
+
 @retry(
     stop=stop_after_attempt(3),
     wait=wait_exponential(multiplier=1, min=2, max=10),
     retry=retry_if_exception_type(Exception),
     reraise=True,
 )
-def run(messages: list[dict]) -> str:
+def run(messages: list[dict], context: dict | None = None) -> str:
     """Run the agent loop: send messages, handle tool calls, return final text.
 
     Handles multi-turn tool calling: Gemini may call multiple tools in sequence
@@ -63,6 +77,11 @@ def run(messages: list[dict]) -> str:
     model = _build_model(TOOLS)
     history = _to_gemini_history(messages[:-1])
     last = messages[-1]["content"]
+
+    # Inject session context so agent doesn't re-search unnecessarily
+    ctx_hint = _context_message(context or {})
+    if ctx_hint:
+        last = f"{ctx_hint}\n\n{last}"
 
     chat = model.start_chat(history=history)
     response = chat.send_message(last)

@@ -30,7 +30,7 @@ async def chat(request: ChatRequest):
     session = get_session(request.session_id)
 
     try:
-        response_text = run(session["messages"])
+        response_text = run(session["messages"], context=session.get("context", {}))
     except Exception as e:
         logger.error("Agent error for session %s: %s", request.session_id, e)
         raise HTTPException(status_code=500, detail="Agent error. Please try again.")

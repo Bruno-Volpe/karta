@@ -173,7 +173,7 @@ def _dispatch(name: str, args: dict):
             price_from=args.get("price_from"),
             price_to=args.get("price_to"),
             order_by=args.get("order_by", "RECOMENDATION"),
-            limit=args.get("limit", 10),
+            limit=int(args.get("limit", 10)),  # Gemini returns floats for integers
         )
 
     if name == "get_hotel_details":
@@ -199,6 +199,10 @@ def _dispatch(name: str, args: dict):
         b = client.book(args["validate_option_id"], [traveler])
         # Auto-confirm after booking
         c = client.confirm(b["reservation_id"])
+        # Persist reservation_id in session context
+        if _current_session_id:
+            from sessions import update_context
+            update_context(_current_session_id, reservation_id=b["reservation_id"])
         return {**b, "confirmed": c["status"] == "Confirm", "supplier_reference": c.get("supplier_reference")}
 
     if name == "cancel":
