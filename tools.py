@@ -80,7 +80,7 @@ TOOLS = [
         ),
         genai.protos.FunctionDeclaration(
             name="validate",
-            description="Validate price and availability before booking. Always call this before book. Returns validate_option_id and config_doc_id needed for booking.",
+            description="Validate price and availability before booking. Always call this before book. Returns validate_option_id and config_doc_id needed for booking. IMPORTANT: rate_id must come from get_results best_rate.rate_id — call get_results first if you don't have it.",
             parameters=genai.protos.Schema(
                 type=genai.protos.Type.OBJECT,
                 properties={
@@ -180,7 +180,12 @@ def _dispatch(name: str, args: dict):
         return client.get_hotel_details(args["search_id"], int(args["option_id"]))
 
     if name == "validate":
-        return client.validate(args["search_id"], int(args["option_id"]), args["rate_id"])
+        result = client.validate(args["search_id"], int(args["option_id"]), args["rate_id"])
+        # Save option_id so agent remembers which hotel was selected across turns
+        if _current_session_id:
+            from sessions import update_context
+            update_context(_current_session_id, option_id=int(args["option_id"]))
+        return result
 
     if name == "book":
         traveler = {

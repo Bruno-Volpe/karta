@@ -24,6 +24,8 @@ def _post(url: str, **kwargs) -> httpx.Response:
     r = httpx.post(url, headers=get_headers(), timeout=30, **kwargs)
     if r.status_code == 401:
         r = httpx.post(url, headers=get_headers(force_refresh=True), timeout=30, **kwargs)
+    if not r.is_success:
+        logger.error("POST %s → %s: %s", url, r.status_code, r.text[:500])
     r.raise_for_status()
     return r
 
@@ -188,6 +190,10 @@ def validate(search_id: str, option_id: int, rate_id: str) -> dict:
     from netactica.auth import get_token
     token = get_token()
 
+    # Gemini double-escapes JSON strings (\" → \") — normalize before sending
+    if rate_id and '\\"' in rate_id:
+        rate_id = rate_id.replace('\\"', '"')
+    logger.info("Validate: search_id=%s option_id=%s rate_id=%r", search_id, option_id, rate_id)
     r = _post(f"{settings.netactica_base_url}/hotelvalidation", json={
         "SearchId": search_id,
         "SessionToken": token,
@@ -232,11 +238,13 @@ def book(validate_option_id: str, travelers: list[dict]) -> dict:
     from netactica.auth import get_token
     token = get_token()
 
-    r = _post(f"{settings.netactica_base_url}/HotelBook", json={
+    payload = {
         "SessionToken": token,
         "ValidateOptionId": validate_option_id,
         "Travelers": travelers,
-    })
+    }
+    logger.info("Book payload (no token): ValidateOptionId=%s Travelers=%s", validate_option_id, travelers)
+    r = _post(f"{settings.netactica_base_url}/HotelBook", json=payload)
     data = r.json()
     return {
         "reservation_id": data.get("ReservationId"),

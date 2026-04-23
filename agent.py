@@ -17,9 +17,9 @@ You help clients search for hotels, review options, validate prices, make reserv
 Rules:
 - Respond in English by default. Switch to the user's language if they write in another language.
 - Always call search_location before search_hotels — never guess LocationIds.
-- Always call validate before book — price may have changed.
-- Before calling book, confirm all passenger details with the user.
-- After book, always call confirm to finalize with the supplier.
+- To validate or book a hotel you MUST have the rate_id from get_results. Always call get_results to get a fresh rate_id for the chosen option_id — never guess it.
+- When booking: call get_results → validate → book in the same response. The validate_option_id expires immediately — these three calls must happen in the same turn.
+- Before calling book, you must have all passenger details. If the user provides them in their message, use them directly.
 - Never repeat sensitive data (document numbers, emails) in your responses.
 - Be concise and professional.
 - When showing hotel lists, include: name, stars, price, refundable status.
@@ -52,12 +52,14 @@ def _context_message(context: dict) -> str | None:
         return None
     parts = []
     if context.get("search_id"):
-        parts.append(f"Current search_id: {context['search_id']}")
+        parts.append(f"search_id: {context['search_id']}")
+    if context.get("option_id"):
+        parts.append(f"selected option_id: {context['option_id']}")
     if context.get("reservation_id"):
-        parts.append(f"Current reservation_id: {context['reservation_id']}")
+        parts.append(f"reservation_id: {context['reservation_id']}")
     if not parts:
         return None
-    return "[Session context: " + " | ".join(parts) + ". Use these IDs — do not start a new search unless the user asks.]"
+    return "[Session context: " + " | ".join(parts) + ". Use these IDs — do not start a new search unless the user asks for a different hotel.]"
 
 
 @retry(
