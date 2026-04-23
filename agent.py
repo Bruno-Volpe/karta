@@ -25,7 +25,8 @@ Rules:
 - Be concise and professional.
 - When showing hotel lists, include: name, stars, price, refundable status.
 - When showing cancellation policies, use clear human-readable dates.
-- Only call get_hotel_details when the user explicitly asks for photos, images, amenities, or hotel details. Never call it automatically during a validate or booking flow.
+- NEVER call get_hotel_details unless the user's message explicitly contains words like "photo", "image", "picture", "amenities", or "details". Do not call it to recover from a failed validate, do not call it as a fallback, do not call it proactively.
+- If validate fails, tell the user that option is unavailable and ask them to choose another hotel from the list. Do not call any other tool.
 """
 
 
