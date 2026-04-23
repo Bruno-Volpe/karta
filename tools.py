@@ -156,10 +156,11 @@ def _dispatch(name: str, args: dict):
             adults=int(args.get("adults", 2)),
             children=int(args.get("children", 0)),
         )
-        # Persist search_id in session context so it's always the current one
+        # New search resets booking context — previous option_id and reservation_id
+        # are no longer valid for this search
         if _current_session_id:
             from sessions import update_context
-            update_context(_current_session_id, search_id=search_id)
+            update_context(_current_session_id, search_id=search_id, option_id=None, reservation_id=None)
         return {"search_id": search_id}
 
     if name == "get_results":
