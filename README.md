@@ -288,34 +288,6 @@ Several behaviors discovered by testing the actual API differ from what the prov
 
 ---
 
-## Future improvements
-
-These are known limitations and natural next steps beyond the scope of this challenge:
-
-**Latency & UX**
-- **Streaming responses (SSE)** — the agent currently waits for all tool calls to finish before returning a response. With Server-Sent Events, the backend could emit progress events while tools execute ("Searching hotels… ✓ Validating price… ✓") and stream the final text token by token. Requires a `/chat/stream` endpoint on the back and an EventSource listener on the front.
-- **Frontend** — a web or mobile UI with loading states and streaming support would make the latency far less noticeable than the current 30-40s of silence on a raw API call.
-
-**Agent quality**
-- **Better model** — Gemini 2.5-flash was chosen as the best available model within the free-tier quota. A more capable model (e.g. Gemini 2.5-pro or GPT-4o) would produce more reliable tool call sequences and fewer hallucinated arguments.
-- **Structured output for passenger extraction** — currently the agent extracts passenger data from free text and passes it to the `book` tool. A dedicated structured-output step would validate all required fields before attempting to book, reducing booking failures from missing data.
-- **Tool call observability** — log tool call sequences and latencies per request to Datadog/OpenTelemetry so you can see which tool is the bottleneck in production.
-
-**Features**
-- **Multi-room support** — the current implementation books a single room. Supporting multiple rooms would require passing an array of `Rooms` objects and one `Traveler` per room.
-- **Children ages** — Netactica accepts children ages per room; the current implementation ignores this field.
-- **Multiple passengers** — only the lead passenger is collected today. Full group bookings require one `Traveler` per adult.
-- **Booking retrieval** — a `get_reservation(reservation_id)` tool to look up existing bookings by ID.
-- **Price alerts** — notify the user if the price of a watched hotel drops.
-
-**Infrastructure**
-- **Authentication on `/chat`** — the endpoint is currently open. In production it should require a JWT or API key tied to the Karta card account.
-- **Rate limiting** — prevent abuse with per-session or per-IP request throttling.
-- **Horizontal scaling** — Redis already makes sessions stateless, so scaling to multiple API workers is straightforward. The Netactica token cache would need to move to Redis as well.
-- **Async HTTP client** — replacing `httpx` sync calls with `httpx.AsyncClient` inside async FastAPI handlers would free the event loop during I/O-heavy tool calls.
-
----
-
 ## Development notes
 
 This project was developed as a single-developer challenge without feature branches or pull requests — all commits go directly to `main`. In a team setting, each feature would live in its own branch with a PR and review before merging.
