@@ -35,13 +35,10 @@ cp .env.example .env
 
 ---
 
-## Running locally
+## Running
 
 ```bash
-# Start Redis (required for session persistence)
-docker compose up redis -d
-
-uvicorn main:app --reload
+docker compose up --build
 ```
 
 Health check:
@@ -49,12 +46,6 @@ Health check:
 ```bash
 curl http://localhost:8000/health
 # {"status":"ok"}
-```
-
-### Running with Docker (API + Redis together)
-
-```bash
-docker compose up --build
 ```
 
 ---
