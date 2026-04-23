@@ -202,13 +202,20 @@ def _dispatch(name: str, args: dict):
             "DOB": args["dob"],
         }
         b = client.book(args["validate_option_id"], [traveler])
-        # Auto-confirm after booking
-        c = client.confirm(b["reservation_id"])
-        # Persist reservation_id in session context
+        # Persist reservation_id before confirm — so even if confirm fails,
+        # the agent knows the reservation exists and can inform the user
         if _current_session_id:
             from sessions import update_context
             update_context(_current_session_id, reservation_id=b["reservation_id"])
-        return {**b, "confirmed": c["status"] == "Confirm", "supplier_reference": c.get("supplier_reference")}
+        try:
+            c = client.confirm(b["reservation_id"])
+            confirmed = c["status"] == "Confirm"
+            supplier_reference = c.get("supplier_reference")
+        except Exception as e:
+            logger.warning("Confirm failed for reservation %s: %s", b["reservation_id"], e)
+            confirmed = False
+            supplier_reference = None
+        return {**b, "confirmed": confirmed, "supplier_reference": supplier_reference}
 
     if name == "cancel":
         return client.cancel(int(args["reservation_id"]))

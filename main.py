@@ -1,6 +1,7 @@
 import logging
 
 from fastapi import FastAPI, HTTPException
+from google.api_core.exceptions import ResourceExhausted
 
 from models.chat import ChatRequest, ChatResponse
 from sessions import get_session, save_session, append_message
@@ -31,6 +32,9 @@ async def chat(request: ChatRequest):
 
     try:
         response_text = run(session["messages"], context=session.get("context", {}))
+    except ResourceExhausted:
+        logger.error("Gemini rate limit for session %s", request.session_id)
+        raise HTTPException(status_code=429, detail="AI service rate limit reached. Please try again in a few minutes.")
     except Exception as e:
         logger.error("Agent error for session %s: %s", request.session_id, e)
         raise HTTPException(status_code=500, detail="Agent error. Please try again.")

@@ -12,21 +12,31 @@ PREFERRED_LOCATION_TYPES = ["multi_city_vicinity", "city", "neighborhood"]
 
 def _get(url: str, **kwargs) -> httpx.Response:
     """GET with automatic 401 retry."""
-    r = httpx.get(url, headers=get_headers(), timeout=30, **kwargs)
-    if r.status_code == 401:
-        r = httpx.get(url, headers=get_headers(force_refresh=True), timeout=30, **kwargs)
-    r.raise_for_status()
+    try:
+        r = httpx.get(url, headers=get_headers(), timeout=30, **kwargs)
+        if r.status_code == 401:
+            r = httpx.get(url, headers=get_headers(force_refresh=True), timeout=30, **kwargs)
+        if not r.is_success:
+            logger.error("GET %s → %s: %s", url, r.status_code, r.text[:500])
+        r.raise_for_status()
+    except httpx.RequestError as e:
+        logger.error("Netactica unreachable (GET %s): %s", url, e)
+        raise
     return r
 
 
 def _post(url: str, **kwargs) -> httpx.Response:
     """POST with automatic 401 retry."""
-    r = httpx.post(url, headers=get_headers(), timeout=30, **kwargs)
-    if r.status_code == 401:
-        r = httpx.post(url, headers=get_headers(force_refresh=True), timeout=30, **kwargs)
-    if not r.is_success:
-        logger.error("POST %s → %s: %s", url, r.status_code, r.text[:500])
-    r.raise_for_status()
+    try:
+        r = httpx.post(url, headers=get_headers(), timeout=30, **kwargs)
+        if r.status_code == 401:
+            r = httpx.post(url, headers=get_headers(force_refresh=True), timeout=30, **kwargs)
+        if not r.is_success:
+            logger.error("POST %s → %s: %s", url, r.status_code, r.text[:500])
+        r.raise_for_status()
+    except httpx.RequestError as e:
+        logger.error("Netactica unreachable (POST %s): %s", url, e)
+        raise
     return r
 
 

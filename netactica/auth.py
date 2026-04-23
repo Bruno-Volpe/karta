@@ -12,16 +12,23 @@ _token_expires_at: float = 0  # unix timestamp
 
 
 def _fetch_token() -> str:
-    response = httpx.post(
-        f"{settings.netactica_base_url}/Session",
-        json={
-            "UserName": settings.netactica_username,
-            "Password": settings.netactica_password,
-            "UserService": settings.netactica_user_service,
-        },
-        timeout=30,
-    )
-    response.raise_for_status()
+    try:
+        response = httpx.post(
+            f"{settings.netactica_base_url}/Session",
+            json={
+                "UserName": settings.netactica_username,
+                "Password": settings.netactica_password,
+                "UserService": settings.netactica_user_service,
+            },
+            timeout=30,
+        )
+        response.raise_for_status()
+    except httpx.HTTPStatusError as e:
+        logger.error("Netactica auth failed: %s %s", e.response.status_code, e.response.text[:200])
+        raise
+    except httpx.RequestError as e:
+        logger.error("Netactica auth unreachable: %s", e)
+        raise
     token = response.json()["Token"]["TokenId"]
     logger.info("Netactica token refreshed")
     return token

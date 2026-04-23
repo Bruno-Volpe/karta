@@ -3,6 +3,7 @@ from typing import Any
 
 import google.generativeai as genai
 from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception_type
+from google.api_core.exceptions import ResourceExhausted
 
 from config import settings
 
@@ -62,13 +63,22 @@ def _context_message(context: dict) -> str | None:
     return "[Session context: " + " | ".join(parts) + ". Use these IDs — do not start a new search unless the user asks for a different hotel.]"
 
 
+def run(messages: list[dict], context: dict | None = None) -> str:
+    """Run the agent loop, distinguishing rate limit errors from transient failures."""
+    try:
+        return _run(messages, context)
+    except ResourceExhausted as e:
+        logger.error("Gemini rate limit hit: %s", e)
+        raise
+
+
 @retry(
     stop=stop_after_attempt(3),
     wait=wait_exponential(multiplier=1, min=2, max=10),
     retry=retry_if_exception_type(Exception),
     reraise=True,
 )
-def run(messages: list[dict], context: dict | None = None) -> str:
+def _run(messages: list[dict], context: dict | None = None) -> str:
     """Run the agent loop: send messages, handle tool calls, return final text.
 
     Handles multi-turn tool calling: Gemini may call multiple tools in sequence

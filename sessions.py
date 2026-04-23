@@ -25,7 +25,8 @@ def _get_redis():
         client = redis.from_url(settings.redis_url, decode_responses=True, socket_connect_timeout=2)
         client.ping()
         return client
-    except Exception:
+    except Exception as e:
+        logger.warning("Redis unavailable (%s) — falling back to in-memory store", e)
         return None
 
 
