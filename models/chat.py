@@ -8,4 +8,4 @@ class ChatRequest(BaseModel):
 
 class ChatResponse(BaseModel):
     session_id: str
-    message: str
+    response: str

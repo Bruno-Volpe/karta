@@ -42,7 +42,7 @@ async def chat(request: ChatRequest):
     # Persist assistant response
     append_message(request.session_id, "assistant", response_text)
 
-    return ChatResponse(session_id=request.session_id, message=response_text)
+    return ChatResponse(session_id=request.session_id, response=response_text)
 
 
 @app.get("/sessions/{session_id}/history")
