@@ -185,6 +185,8 @@ This is an actual session recorded during testing, showing the full flow includi
 
 ← I have successfully cancelled your reservation.
 ```
+<img width="564" height="924" alt="Screenshot 2026-04-22 at 22 48 08" src="https://github.com/user-attachments/assets/060a6ebb-3c5f-4186-b1be-b49d65cebd75" />
+
 
 Notable behaviours in this session:
 - When the user implied cancellation without asking explicitly (*"ill have a commitment"*), Amelia asked for confirmation instead of cancelling immediately
