@@ -200,7 +200,31 @@ def _dispatch(name: str, args: dict):
         return results
 
     if name == "get_hotel_details":
-        return client.get_hotel_details(args["search_id"], int(args["option_id"]))
+        try:
+            return client.get_hotel_details(args["search_id"], int(args["option_id"]))
+        except Exception:
+            # search_id expired — re-run search to get a valid one
+            if _current_session_id:
+                from sessions import get_session, update_context
+                ctx = get_session(_current_session_id).get("context", {})
+                params = ctx.get("search_params")
+                hotels = ctx.get("hotels", [])
+                option_id = int(args["option_id"])
+                if params:
+                    new_sid = client.search_hotels(**params)
+                    new_results = client.get_results(new_sid, limit=20)
+                    original = next((h for h in hotels if h["option_id"] == option_id), None)
+                    match = next((h for h in new_results if original and h["name"] == original["name"]), None)
+                    if not match and new_results:
+                        match = new_results[0]
+                    if match:
+                        new_hotels_ctx = [
+                            {"position": i + 1, "option_id": h["option_id"], "name": h["name"], "rate_id": h["best_rate"]["rate_id"]}
+                            for i, h in enumerate(new_results) if h.get("best_rate")
+                        ]
+                        update_context(_current_session_id, search_id=new_sid, hotels=new_hotels_ctx)
+                        return client.get_hotel_details(new_sid, match["option_id"])
+            raise
 
     if name == "validate":
         search_id = args["search_id"]
