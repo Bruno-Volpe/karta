@@ -16,7 +16,7 @@ Amelia is an AI agent that helps users search, book, and cancel hotel reservatio
 ## Setup
 
 ```bash
-git clone [<repo>](https://github.com/Bruno-Volpe/karta)
+git clone https://github.com/Bruno-Volpe/karta
 cd karta
 
 python3 -m venv .venv
