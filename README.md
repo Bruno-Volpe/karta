@@ -151,6 +151,58 @@ Amelia uses the reservation ID saved in context and cancels the booking.
 
 ---
 
+## Example conversation (real session)
+
+This is an actual session recorded during testing, showing the full flow including image retrieval and a natural language cancel:
+
+```
+→ "Search for 4-star hotels in Playa del Carmen, check-in June 1 2026, checkout June 3 2026, 2 adults"
+
+← Here are some 4-star hotels in Playa del Carmen for your dates:
+   • Hotel Colonial Playa del Carmen: 4 stars, $80.78, refundable.
+   • Illusion Boutique Hotel By BFH: 4 stars, $86.56, refundable.
+   • Tukan Hotel Playa del Carmen: 4 stars, $90.52, refundable.
+   • (7 more options...)
+
+→ "I'd like the first option. Can you validate the price and show me the cancellation policy?"
+
+← The validated price for Hotel Colonial Playa del Carmen is $80.78 USD.
+   Cancellation policy:
+   • Cancel before May 31, 2026 10:58 PM UTC → fee of $40.39 USD
+   • Cancel after May 31, 2026 10:59 PM UTC → fee of $80.78 USD
+
+→ "show me pictures of the hotel"
+
+← Here are some pictures of Hotel Colonial Playa del Carmen:
+   https://i.travelapi.com/lodging/.../3688fc12_z.jpg
+   https://i.travelapi.com/lodging/.../193d3f1c_z.jpg
+   (+ more)
+
+→ "ill have a commitment that day, i wont be able to be at the hotel"
+
+← Do you mean you would like to cancel your reservation? Or would you like to search for a different date?
+
+→ "yes"
+
+← I understand you want to cancel, but I don't have a record of a reservation being made. Did you complete the booking process?
+
+→ "Please book it. Passenger: Juan Perez, Male, passport MX123456, Mexican, born 1990-01-15, phone 5215551234567, email juan@test.com"
+
+← Your booking for Hotel Colonial Playa del Carmen is confirmed! Your reservation ID is 354767.
+
+→ "now may i cancel?"
+
+← I have successfully cancelled your reservation.
+```
+
+Notable behaviours in this session:
+- When the user implied cancellation without asking explicitly (*"ill have a commitment"*), Amelia asked for confirmation instead of cancelling immediately
+- When the user confirmed *"yes"* before a reservation existed, Amelia correctly explained no booking was on record
+- Image URLs were returned on request without needing a hotel ID
+- The session context tracked `reservation_id: 354767` correctly throughout
+
+---
+
 ## Nice to have
 
 All three optional items from the challenge spec are implemented:
