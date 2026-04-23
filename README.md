@@ -185,6 +185,12 @@ This is an actual session recorded during testing, showing the full flow includi
 
 ← I have successfully cancelled your reservation.
 ```
+The IMG:
+{
+	"session_id": "session-demo-001",
+	"response": "Here are some pictures of Hotel Colonial Playa del Carmen:\nhttps://i.travelapi.com/lodging/3000000/2800000/2793400/2793346/3688fc12_z.jpg\nhttps://i.travelapi.com/lodging/3000000/2800000/2793400/2793346/w4000h2248x0y0-f50e90ba_z.jpg\nhttps://i.travelapi.com/lodging/3000000/2800000/2793400/2793346/193d3f1c_z.jpg\nhttps://i.travelapi.com/lodging/3000000/2800000/2793400/2793346/f8c4442d_z.jpg\nhttps://i.travelapi.com/lodging/3000000/2800000/2793400/2793346/39795a1a_z.jpg"
+}
+
 <img width="564" height="924" alt="Screenshot 2026-04-22 at 22 48 08" src="https://github.com/user-attachments/assets/060a6ebb-3c5f-4186-b1be-b49d65cebd75" />
 
 
