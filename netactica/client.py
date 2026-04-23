@@ -131,7 +131,7 @@ def get_results(
     if categories:
         payload["Categories"] = [str(c) for c in categories]  # must be strings
     if refundable_only:
-        payload["RefundableType"] = 0  # 0=Refundable (inverted!)
+        payload["RefundableType"] = "0"  # 0=Refundable (inverted!), must be string
     if price_from is not None:
         payload["PriceFrom"] = price_from
     if price_to is not None:

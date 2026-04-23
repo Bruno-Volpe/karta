@@ -180,15 +180,34 @@ def _dispatch(name: str, args: dict):
         categories = None
         if args.get("categories"):
             categories = [c.strip() for c in args["categories"].split(",")]
-        results = client.get_results(
-            search_id=args["search_id"],
-            categories=categories,
-            refundable_only=args.get("refundable_only", False),
-            price_from=args.get("price_from"),
-            price_to=args.get("price_to"),
-            order_by=args.get("order_by", "RECOMENDATION"),
-            limit=int(args.get("limit", 10)),  # Gemini returns floats for integers
-        )
+
+        def _fetch_results(sid):
+            return client.get_results(
+                search_id=sid,
+                categories=categories,
+                refundable_only=args.get("refundable_only", False),
+                price_from=args.get("price_from"),
+                price_to=args.get("price_to"),
+                order_by=args.get("order_by", "RECOMENDATION"),
+                limit=int(args.get("limit", 10)),
+            )
+
+        try:
+            results = _fetch_results(args["search_id"])
+        except Exception:
+            # search_id expired — re-run search automatically
+            if _current_session_id:
+                from sessions import get_session, update_context
+                params = get_session(_current_session_id).get("context", {}).get("search_params")
+                if params:
+                    new_sid = client.search_hotels(**params)
+                    update_context(_current_session_id, search_id=new_sid, option_id=None, reservation_id=None)
+                    results = _fetch_results(new_sid)
+                else:
+                    raise
+            else:
+                raise
+
         # Persist option_id + rate_id so validate can use them even if not in text history
         if _current_session_id and results:
             from sessions import update_context
