@@ -259,7 +259,33 @@ def _dispatch(name: str, args: dict):
             "Nationality": args["nationality"].upper(),
             "DOB": args["dob"],
         }
-        b = client.book(args["validate_option_id"], [traveler])
+        try:
+            b = client.book(args["validate_option_id"], [traveler])
+        except Exception as book_err:
+            # validate_option_id expired — re-validate and retry book
+            recovered = False
+            if _current_session_id and "invalidvalidateOptionid" in str(book_err).lower().replace(" ", ""):
+                from sessions import get_session, update_context
+                ctx = get_session(_current_session_id).get("context", {})
+                params = ctx.get("search_params")
+                option_id = ctx.get("option_id")
+                hotels = ctx.get("hotels", [])
+                if params and option_id:
+                    logger.info("Book failed (expired validate_option_id), re-validating")
+                    new_sid = client.search_hotels(**params)
+                    new_results = client.get_results(new_sid, limit=20)
+                    original = next((h for h in hotels if h["option_id"] == option_id), None)
+                    match = next((h for h in new_results if original and h["name"] == original["name"]), None)
+                    if not match and new_results:
+                        match = new_results[0]
+                    if match:
+                        v = client.validate(new_sid, match["option_id"], match["best_rate"]["rate_id"])
+                        traveler["ConfigurationDocumentId"] = v["config_doc_id"]
+                        b = client.book(v["validate_option_id"], [traveler])
+                        update_context(_current_session_id, search_id=new_sid, option_id=match["option_id"])
+                        recovered = True
+            if not recovered:
+                raise book_err
         # Persist reservation_id before confirm — so even if confirm fails,
         # the agent knows the reservation exists and can inform the user
         if _current_session_id:
