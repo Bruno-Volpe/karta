@@ -208,10 +208,12 @@ All three optional items from the challenge spec are implemented:
 > **Note:** this test suite was created to support development and basic validation. In a real-world application, many more tests would be included, covering additional scenarios, integrations, and edge cases.
 
 ```bash
+pip install -r requirements.txt
+docker compose up redis -d
 pytest tests/ -v -s
 ```
 
-> **Note:** `test_redis_conectado` and `test_session_persiste_no_redis` require Redis running (`docker compose up redis -d`). All other tests run without Docker.
+> **Note:** `test_redis_conectado` and `test_session_persiste_no_redis` require Redis running. All other tests run without Docker.
 
 Current smoke tests:
 
