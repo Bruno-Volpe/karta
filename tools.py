@@ -140,7 +140,7 @@ def execute_tool(name: str, args: dict) -> str:
     except Exception as e:
         logger.warning("Tool %s failed: %s", name, e)
         if name == "validate":
-            return json.dumps({"error": "This hotel option could not be validated (the supplier returned an error). Inform the user that this option is unavailable and ask them to choose a different hotel from the list. Do not call any other tools."})
+            return json.dumps({"error": "__validate_failed__"})
         return json.dumps({"error": str(e)})
 
 
@@ -184,7 +184,6 @@ def _dispatch(name: str, args: dict):
 
     if name == "validate":
         result = client.validate(args["search_id"], int(args["option_id"]), args["rate_id"])
-        # Save option_id so agent remembers which hotel was selected across turns
         if _current_session_id:
             from sessions import update_context
             update_context(_current_session_id, option_id=int(args["option_id"]))

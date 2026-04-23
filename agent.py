@@ -115,8 +115,11 @@ def _run(messages: list[dict], context: dict | None = None) -> str:
 
         # Execute all tool calls and send results back
         tool_results = []
+        validate_failed = False
         for call in calls:
             result = execute_tool(call.name, dict(call.args))
+            if call.name == "validate" and '"__validate_failed__"' in result:
+                validate_failed = True
             tool_results.append(
                 genai.protos.Part(
                     function_response=genai.protos.FunctionResponse(
@@ -125,6 +128,9 @@ def _run(messages: list[dict], context: dict | None = None) -> str:
                     )
                 )
             )
+
+        if validate_failed:
+            return "I'm sorry, this hotel option is currently unavailable (the supplier returned an error). Please choose a different hotel from the list."
 
         response = chat.send_message(tool_results)
 
