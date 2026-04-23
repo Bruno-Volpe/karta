@@ -93,7 +93,7 @@ TOOLS = [
         ),
         genai.protos.FunctionDeclaration(
             name="book",
-            description="Create a hotel reservation. Requires passenger info collected from the user. After booking, always call confirm.",
+            description="Create a hotel reservation. Requires passenger info collected from the user. Booking and confirmation are handled in a single call.",
             parameters=genai.protos.Schema(
                 type=genai.protos.Type.OBJECT,
                 properties={

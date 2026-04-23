@@ -129,6 +129,3 @@ def _run(messages: list[dict], context: dict | None = None) -> str:
     return response.text
 
 
-def extract_text(response) -> str:
-    """Kept for backwards compatibility with smoke tests."""
-    return response.text
