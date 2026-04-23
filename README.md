@@ -7,6 +7,7 @@ Amelia is an AI agent that helps users search, book, and cancel hotel reservatio
 ## Requirements
 
 - Python 3.10+
+- Docker & Docker Compose
 - A [Google AI Studio](https://aistudio.google.com) API key (free)
 
 > **Model:** defaults to `gemini-2.5-flash` — chosen as the best available model for reasoning and function calling. The free tier without billing is limited to 20 req/day, which is impractical for testing. Adding a billing account to Google AI Studio unlocks significantly higher quotas (pay-as-you-go). A more capable model directly improves the agent's ability to handle complex conversations, ambiguous requests, and multi-step booking flows. The model can be changed via `GEMINI_MODEL` in `.env`.
