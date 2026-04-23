@@ -75,9 +75,91 @@ curl -X POST http://localhost:8000/chat \
 curl http://localhost:8000/sessions/session-001/history
 ```
 
-### Postman collection
+### `DELETE /sessions/{session_id}`
 
-Import `amelia.postman_collection.json` to run a full conversation flow: search → validate → book → cancel.
+Clears a session (history + context). Useful before starting a new flow.
+
+```bash
+curl -X DELETE http://localhost:8000/sessions/session-001
+```
+
+---
+
+## Complete booking conversation example
+
+The full flow requires four messages in the same session. Each request builds on the previous one — Amelia maintains context automatically via `session_id`.
+
+> For a faster experience, import `amelia.postman_collection.json` — it has all four requests pre-configured with environment variables for `base_url` and `session_id`.
+
+**Step 0 — Clear the session** (run once before starting a new flow)
+
+```bash
+curl -X DELETE http://localhost:8000/sessions/session-001
+```
+
+**Step 1 — Search hotels**
+
+```bash
+curl -X POST http://localhost:8000/chat \
+  -H "Content-Type: application/json" \
+  -d '{
+    "session_id": "session-001",
+    "message": "Search for 4-star hotels in Playa del Carmen, check-in June 1 2026, checkout June 3 2026, 2 adults"
+  }'
+```
+
+Amelia resolves the city, starts the search, and returns a list of hotels with prices and refundable status.
+
+**Step 2 — Select and validate**
+
+```bash
+curl -X POST http://localhost:8000/chat \
+  -H "Content-Type: application/json" \
+  -d '{
+    "session_id": "session-001",
+    "message": "I'\''d like the first option. Can you validate the price and show me the cancellation policy?"
+  }'
+```
+
+Amelia validates the current price against the API and shows the cancellation policy before you commit.
+
+**Step 3 — Book**
+
+```bash
+curl -X POST http://localhost:8000/chat \
+  -H "Content-Type: application/json" \
+  -d '{
+    "session_id": "session-001",
+    "message": "Please book it. Passenger: Juan Perez, Male, passport MX123456, Mexican, born 1990-01-15, phone +5215551234567, email juan@test.com"
+  }'
+```
+
+Amelia extracts the passenger data, re-validates the price, creates the reservation, and confirms it with the supplier — all in one response.
+
+**Step 4 — Cancel**
+
+```bash
+curl -X POST http://localhost:8000/chat \
+  -H "Content-Type: application/json" \
+  -d '{
+    "session_id": "session-001",
+    "message": "Please cancel the reservation."
+  }'
+```
+
+Amelia uses the reservation ID saved in context and cancels the booking.
+
+---
+
+## Nice to have
+
+All three optional items from the challenge spec are implemented:
+
+| Feature | How |
+|---|---|
+| **Image URLs in hotel results** | `get_hotel_details` returns a list of image URLs — ask Amelia "show me photos of this hotel" |
+| **Cancellation policies before booking** | `validate` returns policies and Amelia displays them in Step 2 before you confirm |
+| **Filter support** | `get_results` supports stars (`categories`), price range (`price_from`/`price_to`), refundable-only, and sort order — the agent applies them from natural language |
 
 ---
 
