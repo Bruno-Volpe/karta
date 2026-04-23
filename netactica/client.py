@@ -140,7 +140,7 @@ def get_results(
     r = _post(f"{settings.netactica_base_url}/HotelResultsV2", json=payload)
     hotels = r.json().get("Results", [])
 
-    return [_format_hotel(h) for h in hotels]
+    return [h for h in (_format_hotel(h) for h in hotels) if h is not None]
 
 
 def get_hotel_details(search_id: str, option_id: int) -> dict:
@@ -310,10 +310,24 @@ def cancel(reservation_id: int) -> dict:
     }
 
 
+import re as _re
+_UUID_RE = _re.compile(r'^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$', _re.I)
+
+
+def _is_valid_rate_id(rate_id) -> bool:
+    """UUID rate_ids consistently fail on Netactica's validate endpoint — exclude them."""
+    if not rate_id:
+        return False
+    return not _UUID_RE.match(str(rate_id))
+
+
 def _format_hotel(h: dict) -> dict:
     """Extract the fields relevant to show the user."""
     # Pick the cheapest refundable rate, fallback to cheapest overall
-    rates = h.get("RoomRates", [])
+    # Skip UUID rate_ids — they reliably fail on Netactica's validate endpoint
+    rates = [r for r in h.get("RoomRates", []) if _is_valid_rate_id(r.get("RateId"))]
+    if not rates:
+        return None  # skip this option entirely
     refundable_rates = [r for r in rates if r.get("RefundableType") == 0]
     best_rate = min(refundable_rates or rates, key=lambda r: r.get("Price", {}).get("Total", 9999), default=None)
 

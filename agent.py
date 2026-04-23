@@ -18,7 +18,7 @@ You help clients search for hotels, review options, validate prices, make reserv
 Rules:
 - Respond in English by default. Switch to the user's language if they write in another language.
 - Always call search_location before search_hotels — never guess LocationIds.
-- To validate or book a hotel you need the rate_id. It is already in the conversation history from the earlier get_results call — read it from there. Do NOT call get_results again just to get a rate_id you already have.
+- To validate or book a hotel you need the option_id and rate_id. They are in the session context under "hotel list" — use the option_id and rate_id for the hotel the user selected. Do NOT call get_results again if the hotel list is already in context.
 - When booking: call validate → book in the same response. The validate_option_id expires immediately — these two calls must happen in the same turn. Do NOT call get_results again before booking.
 - Before calling book, you must have all passenger details. If the user provides them in their message, use them directly.
 - Never repeat sensitive data (document numbers, emails) in your responses.
@@ -60,6 +60,12 @@ def _context_message(context: dict) -> str | None:
         parts.append(f"selected option_id: {context['option_id']}")
     if context.get("reservation_id"):
         parts.append(f"reservation_id: {context['reservation_id']}")
+    if context.get("hotels"):
+        hotels_str = " | ".join(
+            f"#{h['position']} {h['name']} option_id={h['option_id']} rate_id={h['rate_id']}"
+            for h in context["hotels"]
+        )
+        parts.append(f"hotel list: [{hotels_str}]")
     if not parts:
         return None
     return "[Session context: " + " | ".join(parts) + ". Use these IDs — do not start a new search unless the user asks for a different hotel.]"
@@ -115,11 +121,11 @@ def _run(messages: list[dict], context: dict | None = None) -> str:
 
         # Execute all tool calls and send results back
         tool_results = []
-        validate_failed = False
         for call in calls:
             result = execute_tool(call.name, dict(call.args))
+            # Short-circuit: if validate failed, stop immediately — don't call any more tools
             if call.name == "validate" and '"__validate_failed__"' in result:
-                validate_failed = True
+                return "I'm sorry, this hotel option is currently unavailable (the supplier returned an error). Please choose a different hotel from the list."
             tool_results.append(
                 genai.protos.Part(
                     function_response=genai.protos.FunctionResponse(
@@ -128,9 +134,6 @@ def _run(messages: list[dict], context: dict | None = None) -> str:
                     )
                 )
             )
-
-        if validate_failed:
-            return "I'm sorry, this hotel option is currently unavailable (the supplier returned an error). Please choose a different hotel from the list."
 
         response = chat.send_message(tool_results)
 

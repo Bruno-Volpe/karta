@@ -162,14 +162,25 @@ def _dispatch(name: str, args: dict):
         # are no longer valid for this search
         if _current_session_id:
             from sessions import update_context
-            update_context(_current_session_id, search_id=search_id, option_id=None, reservation_id=None)
+            update_context(_current_session_id,
+                search_id=search_id,
+                option_id=None,
+                reservation_id=None,
+                search_params={
+                    "location_id": int(args["location_id"]),
+                    "checkin": args["checkin"],
+                    "checkout": args["checkout"],
+                    "adults": int(args.get("adults", 2)),
+                    "children": int(args.get("children", 0)),
+                },
+            )
         return {"search_id": search_id}
 
     if name == "get_results":
         categories = None
         if args.get("categories"):
             categories = [c.strip() for c in args["categories"].split(",")]
-        return client.get_results(
+        results = client.get_results(
             search_id=args["search_id"],
             categories=categories,
             refundable_only=args.get("refundable_only", False),
@@ -178,15 +189,60 @@ def _dispatch(name: str, args: dict):
             order_by=args.get("order_by", "RECOMENDATION"),
             limit=int(args.get("limit", 10)),  # Gemini returns floats for integers
         )
+        # Persist option_id + rate_id so validate can use them even if not in text history
+        if _current_session_id and results:
+            from sessions import update_context
+            hotels_ctx = [
+                {"position": i + 1, "option_id": h["option_id"], "name": h["name"], "rate_id": h["best_rate"]["rate_id"]}
+                for i, h in enumerate(results) if h.get("best_rate")
+            ]
+            update_context(_current_session_id, hotels=hotels_ctx)
+        return results
 
     if name == "get_hotel_details":
         return client.get_hotel_details(args["search_id"], int(args["option_id"]))
 
     if name == "validate":
-        result = client.validate(args["search_id"], int(args["option_id"]), args["rate_id"])
+        search_id = args["search_id"]
+        option_id = int(args["option_id"])
+        rate_id = args["rate_id"]
+        try:
+            result = client.validate(search_id, option_id, rate_id)
+        except Exception as first_err:
+            # Search session expired — re-run the search and retry validate
+            recovered = False
+            if _current_session_id:
+                from sessions import get_session, update_context
+                ctx = get_session(_current_session_id).get("context", {})
+                params = ctx.get("search_params")
+                hotels = ctx.get("hotels", [])
+                if params:
+                    logger.info("Validate failed (%s), retrying with fresh search", first_err)
+                    new_sid = client.search_hotels(**params)
+                    new_results = client.get_results(new_sid, limit=20)
+                    # Match hotel by name, fallback to same position
+                    original = next((h for h in hotels if h["option_id"] == option_id), None)
+                    if original:
+                        match = next((h for h in new_results if h["name"] == original["name"]), None)
+                    else:
+                        match = None
+                    if not match and new_results:
+                        match = new_results[0]
+                    if match:
+                        new_hotels_ctx = [
+                            {"position": i + 1, "option_id": h["option_id"], "name": h["name"], "rate_id": h["best_rate"]["rate_id"]}
+                            for i, h in enumerate(new_results) if h.get("best_rate")
+                        ]
+                        update_context(_current_session_id, search_id=new_sid, hotels=new_hotels_ctx)
+                        option_id = match["option_id"]
+                        rate_id = match["best_rate"]["rate_id"]
+                        result = client.validate(new_sid, option_id, rate_id)
+                        recovered = True
+            if not recovered:
+                raise first_err
         if _current_session_id:
             from sessions import update_context
-            update_context(_current_session_id, option_id=int(args["option_id"]))
+            update_context(_current_session_id, option_id=option_id)
         return result
 
     if name == "book":
