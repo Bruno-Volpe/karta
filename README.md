@@ -193,13 +193,6 @@ The IMG:
 
 <img width="564" height="924" alt="Screenshot 2026-04-22 at 22 48 08" src="https://github.com/user-attachments/assets/060a6ebb-3c5f-4186-b1be-b49d65cebd75" />
 
-
-Notable behaviours in this session:
-- When the user implied cancellation without asking explicitly (*"ill have a commitment"*), Amelia asked for confirmation instead of cancelling immediately
-- When the user confirmed *"yes"* before a reservation existed, Amelia correctly explained no booking was on record
-- Image URLs were returned on request without needing a hotel ID
-- The session context tracked `reservation_id: 354767` correctly throughout
-
 ---
 
 ## Nice to have
